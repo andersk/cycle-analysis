@@ -23,12 +23,11 @@ vertex_set = {a for a, b, w in edges} & {b for a, b, w in edges}
 vertices = sorted(vertex_set)
 scale = len(vertices) + 1
 vertex_index = {a: i for i, a in enumerate(vertices)}
-weight = {
-    (a, b): w * scale + 1 for a, b, w in edges if a in vertex_set and b in vertex_set
-}
+weight = {}
 adjacent = dok_matrix((len(vertices), len(vertices)), dtype=bool)
 for a, b, w in edges:
     if a in vertex_set and b in vertex_set:
+        weight[a, b] = weight.get((a, b), 1) + w * scale
         adjacent[vertex_index[a], vertex_index[b]] = True
 
 n_components, labels = connected_components(adjacent, connection="strong")
