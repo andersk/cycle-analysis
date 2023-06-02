@@ -35,6 +35,38 @@ components = defaultdict(list)
 for vertex, label in zip(vertices, labels):
     components[label].append(vertex)
 
+component_weight = {}
+for (a, b), w in weight.items():
+    if labels[vertex_index[a]] == labels[vertex_index[b]]:
+        component_weight.setdefault(labels[vertex_index[a]], {})[a, b] = w
+
+
+class SolutionPrinter(cp_model.CpSolverSolutionCallback):
+    def on_solution_callback(self):
+        print(
+            end=f"{self.Value(score) // scale} {self.Value(score) % scale}, ",
+            file=sys.stderr,
+            flush=True,
+        )
+
+
+def find_cycles(a, edges):
+    if a in depth:
+        if depth[a] is None:
+            return 0
+        model.AddBoolOr(edges[depth[a] :])
+        return 1
+    cycles = 0
+    depth[a] = len(edges)
+    for b in outgoing.get(a, []):
+        if not solver.Value(cut[a, b]):
+            edges.append(cut[a, b])
+            cycles += find_cycles(b, edges)
+            edges.pop()
+    depth[a] = None
+    return cycles
+
+
 total_score = 0
 
 for label, members in components.items():
@@ -44,47 +76,30 @@ for label, members in components.items():
     print(f"# component of {len(members)}:", *members, file=sys.stderr)
 
     model = cp_model.CpModel()
-
-    after = {
-        (a, b): model.NewBoolVar(f"after{a, b}") for a, b in combinations(members, 2)
-    }
-    for a, b in combinations(members, 2):
-        after[b, a] = after[a, b].Not()
-
-    score = sum(
-        weight[a, b] * after[a, b]
-        for a, b in permutations(members, 2)
-        if adjacent[vertex_index[a], vertex_index[b]]
-    )
-
-    max_count = comb(len(members), 3)
-    for count, (a, b, c) in enumerate(combinations(members, 3)):
-        model.AddBoolOr([after[a, b], after[b, c], after[c, a]])
-        model.AddBoolOr([after[a, c], after[c, b], after[b, a]])
-
+    cut = {(a, b): model.NewBoolVar(f"cut{a, b}") for a, b in component_weight[label]}
+    score = sum(weight[a, b] * cut[a, b] for a, b in component_weight[label])
     model.Minimize(score)
 
     solver = cp_model.CpSolver()
-
-    class SolutionPrinter(cp_model.CpSolverSolutionCallback):
-        def on_solution_callback(self):
-            print(
-                "# found",
-                self.Value(score) // scale,
-                self.Value(score) % scale,
-                file=sys.stderr,
-            )
-
     solver.parameters.num_search_workers = 6
-    print("# solving", file=sys.stderr)
-    print(
-        "#",
-        solver.StatusName(solver.SolveWithSolutionCallback(model, SolutionPrinter())),
-        file=sys.stderr,
-    )
-    for a, b in permutations(members, 2):
-        if adjacent[vertex_index[a], vertex_index[b]] and solver.Value(after[a, b]):
-            print(a, b, weight[a, b] // scale)
+
+    outgoing = {}
+    for a, b in component_weight[label]:
+        outgoing.setdefault(a, []).append(b)
+
+    while True:
+        print(end="# solving: ", file=sys.stderr, flush=True)
+        status = solver.SolveWithSolutionCallback(model, SolutionPrinter())
+        assert status == cp_model.OPTIMAL
+        depth = {}
+        cycles = sum(find_cycles(a, []) for a in members)
+        print(f"{cycles=}", file=sys.stderr)
+        if cycles == 0:
+            break
+
+    for (a, b), w in component_weight[label].items():
+        if solver.Value(cut[a, b]):
+            print(a, b, w // scale)
     total_score += solver.Value(score)
 
 print(total_score // scale, total_score % scale)
