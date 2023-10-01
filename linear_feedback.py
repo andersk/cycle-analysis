@@ -62,7 +62,7 @@ for (vertex_a, vertex_b), w in weight.items():
         if vertex_a == vertex_b:
             total_score += w
             total_cut += 1.0
-            print(vertex_a, vertex_a, w, 1.0, file=sys.stderr)
+            print(vertex_a, vertex_a, (w - 1) / scale, 1.0, file=sys.stderr)
             output_edges[vertex_a, vertex_a] = 1.0
         else:
             component = components[label]
@@ -129,7 +129,13 @@ for label, component in enumerate(components):
         total_score += cut * (w - 1) / scale
         total_cut += cut
         if cut >= 1e-8:
-            print(component.vertices[a], component.vertices[b], w, cut, file=sys.stderr)
+            print(
+                component.vertices[a],
+                component.vertices[b],
+                (w - 1) / scale,
+                cut,
+                file=sys.stderr,
+            )
             output_edges[component.vertices[a], component.vertices[b]] = cut
 
     for (a, b, c), x in zip(triangles, h.getSolution().row_dual):
