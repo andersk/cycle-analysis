@@ -129,7 +129,7 @@ for label, component in enumerate(components):
         total_score += cut * (w - 1) / scale
         total_cut += cut
         if cut >= 1e-8:
-            print(component.vertices[a], component.vertices[b], w, cut)
+            print(component.vertices[a], component.vertices[b], w, cut, file=sys.stderr)
             output_edges[component.vertices[a], component.vertices[b]] = cut
 
     for (a, b, c), x in zip(triangles, h.getSolution().row_dual):
