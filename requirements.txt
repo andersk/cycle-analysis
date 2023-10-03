@@ -1,3 +1,4 @@
 highspy
 ortools
+pandas
 scipy
