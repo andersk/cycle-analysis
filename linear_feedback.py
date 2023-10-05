@@ -141,12 +141,13 @@ for label, component in enumerate(components):
     for (a, b, c), x in zip(triangles, h.getSolution().row_dual):
         if x < 1e-8:
             continue
-        if d[a + comb(b, 2)] < 1e-8:
-            output_edges.setdefault((component.vertices[a], component.vertices[b]), 0)
-        if (d[b + comb(c, 2)] if b < c else 1.0 - d[c + comb(b, 2)]) < 1e-8:
-            output_edges.setdefault((component.vertices[b], component.vertices[c]), 0)
-        if 1.0 - d[a + comb(c, 2)] < 1e-8:
-            output_edges.setdefault((component.vertices[c], component.vertices[a]), 0)
+        for i, j in [(a, b), (b, c), (c, a)]:
+            if (component.vertices[i], component.vertices[j]) in weight and (
+                d[i + comb(j, 2)] if i < j else 1.0 - d[j + comb(i, 2)]
+            ) < 1e-8:
+                output_edges.setdefault(
+                    (component.vertices[i], component.vertices[j]), 0
+                )
 
 print("digraph {")
 print("  newrank=true")
