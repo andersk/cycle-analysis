@@ -42,7 +42,10 @@ for (const file of files) {
           path.node.source.value.startsWith("../")) &&
         path.node.specifiers !== undefined
       ) {
-        let source = fsPath.join(fsPath.dirname(file), path.node.source.value);
+        let source = fsPath.relative(
+          ".",
+          fsPath.join(fsPath.dirname(file), path.node.source.value),
+        );
         if (fileSet.has(`${source}.ts`)) {
           source = `${source}.ts`;
         } else if (fileSet.has(`${source}.js`)) {
