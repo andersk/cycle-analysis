@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as fsPath from "path";
 
 import { namedTypes as n } from "ast-types";
+import type { NodePath } from "ast-types/lib/node-path";
 import type { Scope } from "ast-types/lib/scope";
 import * as recast from "recast";
 import * as babelParser from "recast/parsers/babel";
@@ -17,6 +18,41 @@ for (const file of files) {
   });
   const sources = new Map<Scope, Map<string, string>>();
   const counts = new Map<string, number>();
+
+  const visitImport = (
+    path: NodePath<n.ExportNamedDeclaration> | NodePath<n.ImportDeclaration>,
+  ) => {
+    if (
+      n.StringLiteral.check(path.node.source) &&
+      (path.node.source.value.startsWith("./") ||
+        path.node.source.value.startsWith("../")) &&
+      path.node.specifiers !== undefined
+    ) {
+      let source = fsPath.relative(
+        ".",
+        fsPath.join(fsPath.dirname(file), path.node.source.value),
+      );
+      if (fileSet.has(`${source}.ts`)) {
+        source = `${source}.ts`;
+      } else if (fileSet.has(`${source}.js`)) {
+        source = `${source}.js`;
+      }
+      if (!counts.has(source)) {
+        counts.set(source, 0);
+      }
+      for (const specifier of path.node.specifiers) {
+        if (n.Identifier.check(specifier.local)) {
+          const scope = path.scope.lookup(specifier.local.name);
+          if (!sources.has(scope)) {
+            sources.set(scope, new Map<string, string>());
+          }
+          sources.get(scope)!.set(specifier.local.name, source);
+        }
+      }
+    }
+    return false;
+  };
+
   recast.visit(ast, {
     visitClassMethod(path): false | void {
       if (path.node.computed) {
@@ -35,37 +71,8 @@ for (const file of files) {
         return false;
       }
     },
-    visitImportDeclaration(path) {
-      if (
-        n.StringLiteral.check(path.node.source) &&
-        (path.node.source.value.startsWith("./") ||
-          path.node.source.value.startsWith("../")) &&
-        path.node.specifiers !== undefined
-      ) {
-        let source = fsPath.relative(
-          ".",
-          fsPath.join(fsPath.dirname(file), path.node.source.value),
-        );
-        if (fileSet.has(`${source}.ts`)) {
-          source = `${source}.ts`;
-        } else if (fileSet.has(`${source}.js`)) {
-          source = `${source}.js`;
-        }
-        if (!counts.has(source)) {
-          counts.set(source, 0);
-        }
-        for (const specifier of path.node.specifiers) {
-          if (n.Identifier.check(specifier.local)) {
-            const scope = path.scope.lookup(specifier.local.name);
-            if (!sources.has(scope)) {
-              sources.set(scope, new Map<string, string>());
-            }
-            sources.get(scope)!.set(specifier.local.name, source);
-          }
-        }
-      }
-      return false;
-    },
+    visitExportNamedDeclaration: visitImport,
+    visitImportDeclaration: visitImport,
     visitIdentifier(path) {
       const scope = path.scope.lookup(path.node.name);
       const source = sources.get(scope)?.get(path.node.name);
