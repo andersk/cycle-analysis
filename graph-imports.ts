@@ -50,7 +50,6 @@ for (const file of files) {
         }
       }
     }
-    return false;
   };
 
   recast.visit(ast, {
@@ -71,8 +70,14 @@ for (const file of files) {
         return false;
       }
     },
-    visitExportNamedDeclaration: visitImport,
-    visitImportDeclaration: visitImport,
+    visitExportNamedDeclaration(path) {
+      visitImport(path);
+      this.visit(path.get("declaration"));
+    },
+    visitImportDeclaration(path) {
+      visitImport(path);
+      return false;
+    },
     visitIdentifier(path) {
       const scope = path.scope.lookup(path.node.name);
       const source = sources.get(scope)?.get(path.node.name);
