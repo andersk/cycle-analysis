@@ -75,7 +75,9 @@ for (const file of files) {
       this.visit(path.get("declaration"));
     },
     visitImportDeclaration(path) {
-      visitImport(path);
+      if (path.node.importKind === "value") {
+        visitImport(path);
+      }
       return false;
     },
     visitIdentifier(path) {
