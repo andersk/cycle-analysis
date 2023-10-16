@@ -1,0 +1,13 @@
+diff --git a/lib/scope.js b/lib/scope.js
+index 81d6b01ce4c07ebaf75f8551fcef0c9151252d4e..5d579b7807eb0a885db4d299dc0dc782dbfd5210 100644
+--- a/lib/scope.js
++++ b/lib/scope.js
+@@ -129,7 +129,7 @@ function scopePlugin(fork) {
+             }
+         }
+         if (ScopeType.check(node)) {
+-            if (namedTypes.CatchClause.check(node)) {
++            if (namedTypes.CatchClause.check(node) && node.param !== null) {
+                 // A catch clause establishes a new scope but the only variable
+                 // bound in that scope is the catch parameter. Any other
+                 // declarations create bindings in the outer scope.
