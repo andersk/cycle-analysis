@@ -5,8 +5,8 @@ import { namedTypes as n } from "ast-types";
 import type { NodePath } from "ast-types/lib/node-path";
 import type { Scope } from "ast-types/lib/scope";
 import * as recast from "recast";
-import * as babelParser from "recast/parsers/babel";
-import * as tsParser from "recast/parsers/typescript";
+import * as babelParser from "recast/parsers/babel.js";
+import * as tsParser from "recast/parsers/typescript.js";
 
 const files = process.argv.slice(2);
 const fileSet = new Set(files);
