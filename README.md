@@ -1,8 +1,8 @@
 Usage:
 
     pip install -r requirements.txt
-    yarn install
-    yarn tsc
+    pnpm install
+    pnpm exec tsc
     cd ../zulip/web/src
     git ls-files '**.ts' '**.js' |
         xargs node ../../../cycle-analysis/graph-imports.js |
